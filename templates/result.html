@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Результат{% endblock %}
+
+{% block head %}
+<style>
+  .result { text-align: center; padding: 36px 24px; border-top: 6px solid var(--{{ prediction.level }}); }
+  .result .percent { font-size: 84px; font-weight: 800; line-height: 1; margin: 8px 0 12px;
+                     color: var(--{{ prediction.level }}); }
+  .result .label { font-size: 22px; font-weight: 700; }
+  .result .caption { color: var(--muted); margin-top: 6px; }
+  /* Шкала риска из трёх зон (зелёная, жёлтая, красная), чёрная черта показывает пациента. */
+  .scale { position: relative; height: 12px; border-radius: 6px; max-width: 480px; margin: 24px auto 4px;
+           background: linear-gradient(to right, var(--low) 0 30%, var(--medium) 30% 60%, var(--high) 60% 100%); }
+  .scale .marker { position: absolute; top: -6px; width: 4px; height: 24px; background: var(--text);
+                   border-radius: 2px; transform: translateX(-50%); }
+  .scale-labels { display: flex; justify-content: space-between; max-width: 480px; margin: 0 auto;
+                  color: var(--muted); font-size: 12px; }
+  h2 { font-size: 19px; margin: 0 0 4px; }
+  .factor { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .factor:last-child { border-bottom: 0; }
+  .factor-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .factor .name { font-weight: 600; }
+  .factor .effect.up { color: var(--high); font-weight: 600; }
+  .factor .effect.down { color: var(--low); font-weight: 600; }
+  .bar { height: 8px; background: var(--bg); border-radius: 4px; margin-top: 8px; overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 4px; }
+  .bar span.up { background: var(--high); }
+  .bar span.down { background: var(--low); }
+  .lead { background: var(--bg); border-radius: 8px; padding: 12px 16px; margin: 12px 0 8px; }
+  table.inputs { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.inputs td { padding: 7px 0; border-bottom: 1px solid var(--border); }
+  table.inputs td:last-child { text-align: right; font-weight: 600; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card result">
+  <div class="caption">Вероятность сердечно-сосудистого заболевания</div>
+  <div class="percent">{{ prediction.risk_percent }}%</div>
+  <span class="label">{{ prediction.result }}</span>
+
+  <div class="scale">
+    <div class="marker" style="left: {{ prediction.risk_percent }}%"></div>
+  </div>
+  <div class="scale-labels"><span>0%</span><span>30%</span><span>60%</span><span>100%</span></div>
+  <div class="caption">Модель: {{ model_name }} · Запись №{{ prediction.id }}</div>
+</div>
+
+<div class="card">
+  <h2>Что сильнее всего повлияло на прогноз</h2>
+  <p class="subtitle" style="margin:0">Топ-3 фактора: важность признака в модели × отклонение вашего значения от среднего.</p>
+
+  {% set top = prediction.top_factors[0] %}
+  <div class="lead">
+    {% if top.increases_risk %}
+      Наибольший вклад в риск внёс показатель «<b>{{ top.label }}</b>» ({{ top.value }}).
+    {% else %}
+      Сильнее всего риск снижает показатель «<b>{{ top.label }}</b>» ({{ top.value }}).
+    {% endif %}
+  </div>
+
+  {% for factor in prediction.top_factors %}
+    {% set direction = "up" if factor.increases_risk else "down" %}
+    <div class="factor">
+      <div class="factor-head">
+        <span class="name">{{ loop.index }}. {{ factor.label }}: {{ factor.value }}</span>
+        <span class="effect {{ direction }}">
+          {{ "▲ повышает риск" if factor.increases_risk else "▼ снижает риск" }} · {{ factor.share }}%
+        </span>
+      </div>
+      <div class="bar"><span class="{{ direction }}" style="width: {{ factor.share }}%"></span></div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Введённые данные</h2>
+  <table class="inputs">
+    {% for label, value in inputs.items() %}
+      <tr><td>{{ label }}</td><td>{{ value }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('index') }}">Новый прогноз</a>
+  <a class="btn secondary" href="{{ url_for('history') }}">История запросов</a>
+</div>
+<p class="disclaimer">Результат носит информационный характер и не является медицинским диагнозом. Обратитесь к врачу.</p>
+{% endblock %}

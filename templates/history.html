@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}История{% endblock %}
+
+{% block head %}
+<style>
+  .table-wrap { overflow-x: auto; }  /* на узком экране таблица прокручивается вбок */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; }
+  tr:hover td { background: var(--bg); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>История запросов</h1>
+<p class="subtitle">Все прогнозы, сохранённые в базе данных SQLite (всего: {{ history|length }}).</p>
+
+<div class="card">
+  {% if history %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>№</th><th>Дата и время</th><th>Возраст</th><th>Пол</th>
+            <th>Давление</th><th>Холестерин</th><th>Макс. пульс</th>
+            <th>Вероятность</th><th>Результат</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in history %}
+            {# Пороги цвета те же, что в RISK_LEVELS в app.py: 30% и 60%. #}
+            {% set level = "low" if row.risk_prob < 0.3 else ("medium" if row.risk_prob < 0.6 else "high") %}
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>{{ row.timestamp }}</td>
+              <td class="num">{{ row.inputs.age }}</td>
+              <td>{{ format_value("sex", row.inputs.sex) }}</td>
+              <td class="num">{{ row.inputs.trestbps }}</td>
+              <td class="num">{{ row.inputs.chol }}</td>
+              <td class="num">{{ row.inputs.thalach }}</td>
+              <td class="num"><b>{{ "%.1f"|format(row.risk_prob * 100) }}%</b></td>
+              <td><span class="badge {{ level }}">{{ row.result }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      Пока нет ни одного прогноза.<br><br>
+      <a class="btn" href="{{ url_for('index') }}">Сделать первый прогноз</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

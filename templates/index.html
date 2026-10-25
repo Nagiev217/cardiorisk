@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Новый прогноз{% endblock %}
+
+{% block head %}
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  .field label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+  .field .unit { color: var(--muted); font-weight: 400; }
+  .field input, .field select { width: 100%; padding: 10px 12px; font-size: 15px;
+      border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
+  .field input:focus, .field select:focus { outline: 2px solid var(--primary); border-color: transparent; }
+  .field .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .field.has-error input, .field.has-error select { border-color: var(--high); }
+  .field .error { color: var(--high); font-size: 13px; margin-top: 4px; }
+  .actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+  .alert { background: #fdecec; border: 1px solid #f5c2c2; color: #8a1f1f;
+           border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Оценка риска сердечно-сосудистых заболеваний</h1>
+<p class="subtitle">Заполните показатели пациента — модель машинного обучения рассчитает вероятность заболевания.</p>
+
+<div class="card">
+  {% if errors %}
+    <div class="alert">Проверьте выделенные поля: найдено ошибок — {{ errors|length }}.</div>
+  {% endif %}
+
+  {# Атрибут novalidate специально не ставим, пусть браузер сам проверит
+     min, max и required. На сервере данные всё равно проверяются ещё раз
+     (функция validate_input в app.py). #}
+  <form method="post" action="{{ url_for('predict') }}" id="patient-form">
+    <div class="grid">
+      {# Поля не прописаны вручную: шаблон проходит по словарю FIELDS из app.py. #}
+      {% for name, spec in fields.items() %}
+        <div class="field {% if errors.get(name) %}has-error{% endif %}">
+          <label for="{{ name }}">
+            {{ spec.label }}{% if spec.unit %} <span class="unit">({{ spec.unit }})</span>{% endif %}
+          </label>
+
+          {% if spec.type == "choice" %}
+            <select id="{{ name }}" name="{{ name }}" required>
+              <option value="" disabled {% if not values.get(name) %}selected{% endif %}>Выберите…</option>
+              {% for key, text in spec.options.items() %}
+                <option value="{{ key }}" {% if values.get(name) == key|string %}selected{% endif %}>{{ text }}</option>
+              {% endfor %}
+            </select>
+          {% else %}
+            <input type="number" id="{{ name }}" name="{{ name }}" required
+                   min="{{ spec.min }}" max="{{ spec.max }}" step="{{ spec.step }}"
+                   value="{{ values.get(name, '') }}" placeholder="{{ spec.min }}–{{ spec.max }}">
+          {% endif %}
+
+          {% if errors.get(name) %}
+            <div class="error">{{ errors[name] }}</div>
+          {% elif spec.hint %}
+            <div class="hint">{{ spec.hint }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Рассчитать риск</button>
+      <button type="button" class="btn secondary" id="fill-demo">Заполнить пример</button>
+    </div>
+  </form>
+</div>
+
+<p class="disclaimer">Результат носит информационный характер и не является медицинским диагнозом.</p>
+
+<script>
+  // Кнопка "Заполнить пример" подставляет в форму тестового пациента.
+  // На защите не придётся вбивать 13 полей руками.
+  const demoPatient = {
+    age: 63, sex: 1, cp: 3, trestbps: 145, chol: 290, fbs: 1, restecg: 1,
+    thalach: 125, exang: 1, oldpeak: 2.3, slope: 1, ca: 2, thal: 3
+  };
+  document.getElementById("fill-demo").addEventListener("click", () => {
+    for (const [name, value] of Object.entries(demoPatient)) {
+      document.getElementById(name).value = value;
+    }
+  });
+</script>
+{% endblock %}

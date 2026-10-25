@@ -1,0 +1,60 @@
+<!doctype html>
+{# base.html: общий каркас сайта. Остальные страницы подключают его через
+   тег extends и вставляют свою разметку в блок content, так что меню и
+   стили не приходится копировать в каждый файл. #}
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CardioRisk{% endblock %} — оценка риска ССЗ</title>
+  <style>
+    /* Все цвета лежат в переменных: поменял здесь, поменялось на всех страницах. */
+    :root {
+      --bg: #f4f6fb; --card: #ffffff; --text: #1d2433; --muted: #6b7385;
+      --border: #e1e5ee; --primary: #c62f45; --primary-dark: #a12236;
+      --low: #1e9e5a; --medium: #e0a100; --high: #d6332f;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif;
+           background: var(--bg); color: var(--text); line-height: 1.5; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); }
+    .nav { max-width: 960px; margin: 0 auto; padding: 14px 16px; display: flex;
+           align-items: center; gap: 24px; flex-wrap: wrap; }
+    .logo { font-weight: 700; font-size: 20px; color: var(--primary); text-decoration: none; }
+    .nav a.link { color: var(--muted); text-decoration: none; font-weight: 500; }
+    .nav a.link:hover, .nav a.link.active { color: var(--text); }
+    main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 26px; margin: 0 0 6px; }
+    .subtitle { color: var(--muted); margin: 0 0 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 24px; margin-bottom: 20px; }
+    .btn { display: inline-block; background: var(--primary); color: #fff; border: 0;
+           border-radius: 8px; padding: 12px 22px; font-size: 16px; font-weight: 600;
+           cursor: pointer; text-decoration: none; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn.secondary:hover { background: var(--bg); }
+    .disclaimer { color: var(--muted); font-size: 13px; }
+    /* Цветные метки уровня риска, нужны на страницах result и history. */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px;
+             font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; }
+    .badge.low { background: var(--low); }
+    .badge.medium { background: var(--medium); }
+    .badge.high { background: var(--high); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <a class="logo" href="{{ url_for('index') }}">♥ CardioRisk</a>
+      {# request.endpoint хранит имя текущего маршрута. По нему подсвечиваем нужный пункт меню. #}
+      <a class="link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Новый прогноз</a>
+      <a class="link {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }}">История</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
